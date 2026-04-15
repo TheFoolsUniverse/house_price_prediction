@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>House Price Predictor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 40px; }
+  header h1 { font-size: 2.4rem; font-weight: 700; color: #38bdf8; letter-spacing: -1px; }
+  header p  { color: #94a3b8; margin-top: 8px; font-size: 1rem; }
+
+  .stats {
+    display: flex; gap: 16px; justify-content: center; margin-bottom: 36px; flex-wrap: wrap;
+  }
+  .stat {
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 12px; padding: 16px 28px; text-align: center;
+  }
+  .stat .val { font-size: 1.6rem; font-weight: 700; color: #38bdf8; }
+  .stat .lbl { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+  .tabs {
+    display: flex; border-bottom: 2px solid #1e293b; margin-bottom: 28px;
+  }
+  .tab {
+    padding: 12px 28px; cursor: pointer; font-size: 0.95rem;
+    color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .tab.active { color: #38bdf8; border-bottom-color: #38bdf8; font-weight: 600; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 16px; padding: 32px;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+  .field label {
+    display: block; font-size: 0.8rem; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%; padding: 10px 14px;
+    background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+    color: #e2e8f0; font-size: 0.95rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: #38bdf8; }
+
+  .btn {
+    width: 100%; padding: 14px; margin-top: 24px;
+    background: #38bdf8; color: #0f172a; font-size: 1rem;
+    font-weight: 700; border: none; border-radius: 10px;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .btn:hover { background: #7dd3fc; }
+
+  .result {
+    margin-top: 24px; padding: 24px; border-radius: 12px;
+    background: linear-gradient(135deg, #0c4a6e, #1e3a5f);
+    border: 1px solid #38bdf8; display: none; text-align: center;
+  }
+  .result .price { font-size: 2.4rem; font-weight: 800; color: #38bdf8; }
+  .result .label { font-size: 0.85rem; color: #94a3b8; margin-top: 4px; }
+
+  /* CSV Tab */
+  .drop-zone {
+    border: 2px dashed #334155; border-radius: 12px; padding: 40px;
+    text-align: center; cursor: pointer; transition: border-color 0.2s;
+  }
+  .drop-zone:hover { border-color: #38bdf8; }
+  .drop-zone p { color: #64748b; }
+  .drop-zone .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+  #csv-file { display: none; }
+
+  .csv-results { margin-top: 24px; display: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { background: #0f172a; color: #38bdf8; padding: 10px 14px; text-align: left; }
+  td { padding: 10px 14px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+  tr:hover td { background: #1e293b; }
+
+  .error { color: #f87171; font-size: 0.85rem; margin-top: 8px; display: none; }
+  .loading { text-align: center; color: #64748b; margin-top: 16px; display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>🏠 House Price Predictor</h1>
+    <p>ML-powered price estimation using Linear Regression</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="val">{{ r2 }}%</div>
+      <div class="lbl">Model Accuracy (R²)</div>
+    </div>
+    <div class="stat">
+      <div class="val">${{ mae }}</div>
+      <div class="lbl">Mean Absolute Error</div>
+    </div>
+    <div class="stat">
+      <div class="val">1,000</div>
+      <div class="lbl">Training Samples</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('manual')">✏️ Manual Input</div>
+    <div class="tab" onclick="switchTab('csv')">📂 Upload CSV</div>
+  </div>
+
+  <!-- MANUAL TAB -->
+  <div class="panel active" id="panel-manual">
+    <div class="card">
+      <div class="grid">
+        <div class="field">
+          <label>Size (sq ft)</label>
+          <input type="number" id="size" placeholder="e.g. 1500" min="100" max="10000"/>
+        </div>
+        <div class="field">
+          <label>Bedrooms</label>
+          <input type="number" id="bedrooms" placeholder="e.g. 3" min="1" max="10"/>
+        </div>
+        <div class="field">
+          <label>Bathrooms</label>
+          <input type="number" id="bathrooms" placeholder="e.g. 2" min="1" max="10"/>
+        </div>
+        <div class="field">
+          <label>Age of House (years)</label>
+          <input type="number" id="age" placeholder="e.g. 10" min="0" max="100"/>
+        </div>
+        <div class="field">
+          <label>Garage Spaces</label>
+          <input type="number" id="garage" placeholder="e.g. 1" min="0" max="5"/>
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <select id="location">
+            <option value="1">Rural</option>
+            <option value="2" selected>Suburban</option>
+            <option value="3">City</option>
+            <option value="4">Premium</option>
+          </select>
+        </div>
+      </div>
+      <div class="error" id="manual-error">⚠️ Please fill in all fields.</div>
+      <button class="btn" onclick="predictManual()">Predict Price</button>
+      <div class="result" id="manual-result">
+        <div class="label">Estimated Price</div>
+        <div class="price" id="manual-price">—</div>
+        <div class="label" id="manual-range">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV TAB -->
+  <div class="panel" id="panel-csv">
+    <div class="card">
+      <div class="drop-zone" onclick="document.getElementById('csv-file').click()">
+        <div class="icon">📄</div>
+        <p><strong>Click to upload a CSV file</strong></p>
+        <p style="margin-top:6px; font-size:0.8rem;">Required columns: size_sqft, bedrooms, bathrooms, age_years, garage_spaces, location_score</p>
+      </div>
+      <input type="file" id="csv-file" accept=".csv" onchange="handleCSV(this)"/>
+      <div class="loading" id="csv-loading">Processing CSV...</div>
+      <div class="error" id="csv-error"></div>
+      <div class="csv-results" id="csv-results">
+        <p style="color:#94a3b8; margin-bottom:12px; font-size:0.85rem;" id="csv-summary"></p>
+        <div style="overflow-x:auto;">
+          <table id="csv-table">
+            <thead>
+              <tr>
+                <th>#</th><th>Size</th><th>Beds</th><th>Baths</th>
+                <th>Age</th><th>Garage</th><th>Location</th><th>Predicted Price</th>
+              </tr>
+            </thead>
+            <tbody id="csv-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  if (tab === 'manual') {
+    document.querySelectorAll('.tab')[0].classList.add('active');
+    document.getElementById('panel-manual').classList.add('active');
+  } else {
+    document.querySelectorAll('.tab')[1].classList.add('active');
+    document.getElementById('panel-csv').classList.add('active');
+  }
+}
+
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString();
+}
+
+async function predictManual() {
+  const fields = ['size','bedrooms','bathrooms','age','garage','location'];
+  const vals = fields.map(f => document.getElementById(f).value);
+  const err = document.getElementById('manual-error');
+
+  if (vals.some(v => v === '')) {
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+
+  const res = await fetch('/predict', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      size_sqft: +vals[0], bedrooms: +vals[1], bathrooms: +vals[2],
+      age_years: +vals[3], garage_spaces: +vals[4], location_score: +vals[5]
+    })
+  });
+  const data = await res.json();
+  if (data.error) { err.textContent = data.error; err.style.display='block'; return; }
+
+  document.getElementById('manual-price').textContent = fmt(data.price);
+  document.getElementById('manual-range').textContent =
+    `Estimated range: ${fmt(data.low)} – ${fmt(data.high)}`;
+  document.getElementById('manual-result').style.display = 'block';
+}
+
+function handleCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const err = document.getElementById('csv-error');
+  const loading = document.getElementById('csv-loading');
+  err.style.display = 'none';
+  loading.style.display = 'block';
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const res = await fetch('/predict-csv', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ csv: e.target.result })
+    });
+    loading.style.display = 'none';
+    const data = await res.json();
+    if (data.error) { err.textContent = '⚠️ ' + data.error; err.style.display='block'; return; }
+
+    const loc = ['','Rural','Suburban','City','Premium'];
+    const tbody = document.getElementById('csv-tbody');
+    tbody.innerHTML = '';
+    data.results.forEach((r, i) => {
+      tbody.innerHTML += `<tr>
+        <td>${i+1}</td>
+        <td>${r.size_sqft.toLocaleString()} ft²</td>
+        <td>${r.bedrooms}</td><td>${r.bathrooms}</td>
+        <td>${r.age_years} yrs</td><td>${r.garage_spaces}</td>
+        <td>${loc[r.location_score] || r.location_score}</td>
+        <td style="color:#38bdf8; font-weight:700">${fmt(r.predicted_price)}</td>
+      </tr>`;
+    });
+    document.getElementById('csv-summary').textContent =
+      `✅ ${data.results.length} rows processed`;
+    document.getElementById('csv-results').style.display = 'block';
+  };
+  reader.readAsText(file);
+}
+</script>
+</body>
+</html>
