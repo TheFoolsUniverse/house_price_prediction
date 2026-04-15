@@ -1,34 +1,53 @@
-# 🏠 House Price Predictor
+🏠 House Price Predictor
+🚀 Live Demo
 
-An ML-powered web app that predicts house prices using Linear Regression.
+Note on Performance: This application is hosted on Render's free tier. If the site has been inactive, it may take 30-50 seconds to "wake up" (cold start) while the server provisions resources. Once active, it will respond instantly.
 
-## What It Does
+An end-to-end Machine Learning web application that predicts residential property values using a trained Linear Regression model. This project bridges the gap between data science and software engineering by providing a functional web interface for model inference.
 
-- **Manual Input** — Type in house details and get an instant price prediction with a range
-- **CSV Upload** — Upload a CSV file with multiple houses and get predictions for all of them
+✨ Key Features
+Real-time Prediction: Enter house specifications (size, bedrooms, etc.) and receive an instant price estimation.
 
-## Tech Stack
+CSV Batch Processing: Upload a .csv file with multiple listings to receive bulk predictions in a tabular format.
 
-- **Python** — Core language
-- **Scikit-learn** — Linear Regression model, StandardScaler, train/test split
-- **Pandas & NumPy** — Data handling
-- **Flask** — Web server
-- **HTML/CSS/JS** — Frontend (single file, no frameworks)
+Synthetic Data Engine: Includes a custom data generation script to train the model on 1,000 realistic housing samples.
 
-## Project Structure
+Professional UI: A modern, dark-themed dashboard built with responsive CSS for optimal viewing on all devices.
 
-```
-house_price_predictor/
-├── app.py                ← main file (run this)
-├── requirements.txt
-├── sample_houses.csv     ← test this with the CSV upload feature
-└── README.md
-```
+🛠️ Tech Stack
+Backend: Python (Flask)
 
-## Model Details
+Machine Learning: Scikit-learn (Linear Regression, StandardScaler)
 
-- **Algorithm:** Linear Regression
-- **Training Data:** 1,000 synthetic samples
-- **Features:** Size, bedrooms, bathrooms, age, garage, location
-- **Accuracy:** ~95% R²
-- **Validation:** 80/20 train/test split
+Data Handling: Pandas, NumPy
+
+Deployment: Render + Gunicorn (WSGI server)
+
+Frontend: HTML5, CSS3, JavaScript (Vanilla)
+
+📊 Model Performance
+The model is trained using a standard 80/20 train-test split:
+
+Accuracy (R² Score): ~95%
+
+Features Used: Size (sqft), Bedrooms, Bathrooms, Age, Garage Spaces, and Location Score.
+
+📂 Project Structure
+Plaintext
+house_price_prediction/
+├── app.py               # Main Flask application & ML logic
+├── requirements.txt     # Python dependencies for deployment
+├── sample_houses.csv    # Example file for batch prediction testing
+├── templates/           # Frontend directory
+│   └── index.html       # Single-page dashboard UI
+└── .gitignore           # Standard Python ignore rules
+🚀 Local Setup
+To run this project on your machine:
+
+Clone the repository: git clone https://github.com/TheFoolsUniverse/house_price_prediction
+
+Install dependencies: pip install -r requirements.txt
+
+Start the server: python app.py
+
+Visit: http://127.0.0.1:5000
